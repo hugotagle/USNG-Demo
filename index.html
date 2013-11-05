@@ -34,6 +34,7 @@
 	    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
 	    <script type="text/javascript" src="js/GeoJSON.js"></script>
 	    <script type="text/javascript">
+		
 		var map;
 		currentFeature_or_Features = null;
 
@@ -62,26 +63,39 @@
 		    saturation: -100,
 		    fillOpacity: 0.01
 		};
+		
+		var cellStyle = {
+		    strokeColor: "#FFFFFF",
+		    strokeOpacity: 1,
+		    strokeWeight: 1,		    
+		    fillColor: "#CCCC00",
+		    fillOpacity: 0.5
+		};		
 
 		var infowindow = new google.maps.InfoWindow();
 
 		var xmlhttp;
+		var overlays;
 
-		function getGrid() {
-
+		function getGrid() {		    
+		    
 		    var size = document.getElementById("cell_size");
 		    var zoomLevel = map.getZoom();
 		    
 		    document.getElementById("zoom_level").value = zoomLevel;
 		    
-		    if (size.value == 10 && zoomLevel < 20) {
+		    if (size.value == 10 && zoomLevel < 19) {
 			size.value = 100;
-		    } else if (size.value == 100 && zoomLevel < 17) {
+			clearOverlays();
+		    } else if (size.value == 100 && zoomLevel < 16) {
 			size.value = 1000;
-		    } else if (size.value == 1000 && zoomLevel < 14) {
+			clearOverlays();
+		    } else if (size.value == 1000 && zoomLevel < 13) {
 			size.value = 10000;
-		    } else if (size.value == 10000 && zoomLevel < 11) {
+			clearOverlays();
+		    } else if (size.value == 10000 && zoomLevel < 10) {
 			size.value = 100000;
+			clearOverlays();
 			//return;
 		    }
 		    
@@ -116,7 +130,8 @@
 //		    var xMin = map.getBounds().getNorthEast().lng();
 //		    var yMin = map.getBounds().getSouthWest().lat();
 
-		    var url = "http://10.3.38.14:8080/usng/resources/grid/cells?xMax=" + xMax + "&yMax=" + yMax + "&xMin=" + xMin + "&yMin=" + yMin + "&size=" + size.value;
+		    //var url = "http://10.3.38.14:8080/usng/resources/grid/cells?xMax=" + xMax + "&yMax=" + yMax + "&xMin=" + xMin + "&yMin=" + yMin + "&size=" + size.value;
+		    var url = "http://10.3.38.14:8080/usng/resources/grid/lines?xMax=" + xMax + "&yMax=" + yMax + "&xMin=" + xMin + "&yMin=" + yMin + "&size=" + size.value;
 
 		    //alert(url);
 
@@ -130,7 +145,7 @@
 			    //alert(xmlhttp.status);
 			    if ( xmlhttp.status == 200) {
 				//box.value = xmlhttp.responseText;
-				rawGeoJSON(xmlhttp.responseText);
+				rawGeoJSON(xmlhttp.responseText, parcel2Style);
 			    }
 			}
 
@@ -140,10 +155,36 @@
 		    xmlhttp.send(null);
 
 		};
+		
+		function getCell(lon, lat) {
+
+		    var size = document.getElementById("cell_size");
+		    var url = "http://10.3.38.14:8080/usng/resources/grid/cell?longitude=" + lon + "&latitude=" + lat + "&size=" + size.value;
+		    //alert(url);
+
+		    xmlhttp.onreadystatechange = function() {
+
+			var box =  document.getElementById("put_geojson_string_here");
+			if (xmlhttp.readyState == 4) {
+
+			    //alert(xmlhttp.status);
+			    if ( xmlhttp.status == 200) {
+				box.value = xmlhttp.responseText;
+				rawGeoJSON(xmlhttp.responseText, cellStyle);
+			    }
+			}
+
+		    }
+
+		    xmlhttp.open("GET",url,true);
+		    xmlhttp.send(null);
+
+		};		
 
 		function getIdentifier(lon, lat) {
 
-		    var url = "http://10.3.38.14:8080/usng/resources/grid/id?longitude=" + lon + "&latitude=" + lat + "&size=10";
+		    var size = document.getElementById("cell_size");
+		    var url = "http://10.3.38.14:8080/usng/resources/grid/id?longitude=" + lon + "&latitude=" + lat + "&size=" + size.value;
 		    //alert(url);
 
 		    xmlhttp.onreadystatechange = function() {
@@ -165,14 +206,14 @@
 		};
 
 		function init(){
-
+		    
 		    xmlhttp = new XMLHttpRequest();
 
 		    map = new google.maps.Map(document.getElementById('map'),{
 			zoom: 20,
 			//center: new google.maps.LatLng(35.042248, -80.662319),
-			//center: new google.maps.LatLng(30.2458669372427, -97.8390259805675), //my house
-			center: new google.maps.LatLng(30.099912, -97.268906), // bastrop
+			center: new google.maps.LatLng(30.2458669372427, -97.8390259805675), //my house
+			//center: new google.maps.LatLng(30.099912, -97.268906), // bastrop
 			mapTypeId: google.maps.MapTypeId.SATELLITE
 
 		    });
@@ -183,19 +224,24 @@
 		    google.maps.event.addListener(map, 'click', function(event) {
 			//alert(event.latLng.lat());
 			//alert(event.latLng.lng());
-			getIdentifier(event.latLng.lng(), event.latLng.lat());
+			getCell(event.latLng.lng(), event.latLng.lat());
 		    });
 
 		    google.maps.event.addListener(map, 'dragend', function() { 
+			//clearMap();
+			//clearOverlays();
 			getGrid(); 
 		    });    
 		    
 		    google.maps.event.addListener(map, 'zoom_changed', function() {
+			//clearMap();
+			//clearOverlays();
 			getGrid();
 		    });		    
 		    
-		}
-		function clearMap(){
+		}		
+		
+		function clearMap(){	
 		    if (!currentFeature_or_Features)
 			return;
 		    if (currentFeature_or_Features.length){
@@ -216,6 +262,33 @@
 			infowindow.close();
 		    }
 		}
+		
+		function clearOverlays(){	
+		    for (var k = 0; k < overlays.length; k++){
+			currentFeature_or_Features = overlays[k];
+			if (!currentFeature_or_Features)
+			    return;
+			if (currentFeature_or_Features.length){
+			    for (var i = 0; i < currentFeature_or_Features.length; i++){
+				if(currentFeature_or_Features[i].length){
+				    for(var j = 0; j < currentFeature_or_Features[i].length; j++){
+					currentFeature_or_Features[i][j].setMap(null);
+				    }
+				}
+				else{
+				    currentFeature_or_Features[i].setMap(null);
+				}
+			    }
+			}else{
+			    currentFeature_or_Features.setMap(null);
+			}
+			if (infowindow.getMap()){
+			    infowindow.close();
+			}
+		    }
+		    overlays = [];
+		}
+		
 		function showFeature(geojson, style, zoomLevel){
 		    //alert("zoom level: " + map.getZoom());
 		    map.setZoom(zoomLevel);
@@ -252,10 +325,15 @@
 
 		    //document.getElementById("put_geojson_string_here").value = JSON.stringify(geojson);
 		}
-		function rawGeoJSON(geojson){
-		    clearMap();
+		function rawGeoJSON(geojson, style){
+		    
+		    if (typeof overlays == 'undefined') overlays = [];		    
+		    
+		    //clearMap();
 		    //currentFeature_or_Features = new GeoJSON(JSON.parse(document.getElementById("put_geojson_string_here").value), parcel2Style);
-		    currentFeature_or_Features = new GeoJSON(JSON.parse(geojson), parcel2Style);
+		    currentFeature_or_Features = new GeoJSON(JSON.parse(geojson), style);		    
+		    overlays.push(currentFeature_or_Features);		 	    
+		    
 		    if (currentFeature_or_Features.length){
 			for (var i = 0; i < currentFeature_or_Features.length; i++){
 			    if(currentFeature_or_Features[i].length){

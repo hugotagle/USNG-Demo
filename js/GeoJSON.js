@@ -71,7 +71,7 @@ var GeoJSON = function( geojson, options ){
 					}
 					if(!i){
 						exteriorDirection = _ccw(path);
-						paths.push(path);
+						paths.push(path);						
 					}else if(i == 1){
 						interiorDirection = _ccw(path);
 						if(exteriorDirection == interiorDirection){
