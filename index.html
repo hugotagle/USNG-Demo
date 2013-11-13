@@ -56,6 +56,22 @@
 		    fillOpacity: 0.25
 		};
 
+		var satelliteStyle = {
+		    strokeColor: "#FFFFFF",
+		    strokeOpacity: 1,
+		    strokeWeight: 1,
+		    saturation: -100,
+		    fillOpacity: 0.01
+		};	
+		
+		var roadmapStyle = {
+		    strokeColor: "#000000",
+		    strokeOpacity: 1,
+		    strokeWeight: 1,
+		    saturation: -100,
+		    fillOpacity: 0.01
+		};		
+		
 		var parcel2Style = {
 		    strokeColor: "#FFFFFF",
 		    strokeOpacity: 1,
@@ -84,53 +100,26 @@
 		    
 		    document.getElementById("zoom_level").value = zoomLevel;
 		    
-		    if (size.value == 10 && zoomLevel < 19) {
+		    if (size.value == 10 && zoomLevel < 20) {
 			size.value = 100;
 			clearOverlays();
-		    } else if (size.value == 100 && zoomLevel < 16) {
+		    } else if (size.value == 100 && zoomLevel < 17) {
 			size.value = 1000;
 			clearOverlays();
-		    } else if (size.value == 1000 && zoomLevel < 13) {
+		    } else if (size.value == 1000 && zoomLevel < 14) {
 			size.value = 10000;
 			clearOverlays();
-		    } else if (size.value == 10000 && zoomLevel < 10) {
+		    } else if (size.value == 10000 && zoomLevel < 11) {
 			size.value = 100000;
 			clearOverlays();
 			//return;
-		    }
-		    
+		    }	    
 
-		    var	up   = 1.01;
-		    var down = 0.01;
-		    
-		    if (size.value == 10) {
-			up   = 1.000005;
-			down = 0.000005;
-		    } else if (size.value == 100) {
-			up = 1.00005;
-			down = 0.00005;
-		    } else if (size.value == 1000) {
-			up = 1.001;
-			down = 0.001;
-		    }
+		    var xMax = map.getBounds().getSouthWest().lng();
+		    var yMax = map.getBounds().getNorthEast().lat();
+		    var xMin = map.getBounds().getNorthEast().lng();
+		    var yMin = map.getBounds().getSouthWest().lat();
 
-
-		    //alert("" + map.getBounds().getSouthWest().lng().toPrecision(8) + " " + map.getBounds().getNorthEast().lat().toPrecision(8)
-		    //		+ "\n" + map.getBounds().getNorthEast().lng().toPrecision(8) + " " + map.getBounds().getSouthWest().lat().toPrecision(8));
-
-		    var xMax = map.getBounds().getSouthWest().lng() * up;
-		    var yMax = map.getBounds().getNorthEast().lat() * up;
-		    var xMin = map.getBounds().getNorthEast().lng() - (map.getBounds().getNorthEast().lng() * down);
-		    var yMin = map.getBounds().getSouthWest().lat() - (map.getBounds().getSouthWest().lat() * down);
-
-		    //alert("" + xMax.toPrecision(8) + " " + yMax.toPrecision(8) + "\n" + xMin.toPrecision(8) + " " + yMin.toPrecision(8));
-
-//		    var xMax = map.getBounds().getSouthWest().lng();
-//		    var yMax = map.getBounds().getNorthEast().lat();
-//		    var xMin = map.getBounds().getNorthEast().lng();
-//		    var yMin = map.getBounds().getSouthWest().lat();
-
-		    //var url = "http://10.3.38.14:8080/usng/resources/grid/cells?xMax=" + xMax + "&yMax=" + yMax + "&xMin=" + xMin + "&yMin=" + yMin + "&size=" + size.value;
 		    var url = "http://10.3.38.14:8080/usng/resources/grid/lines?xMax=" + xMax + "&yMax=" + yMax + "&xMin=" + xMin + "&yMin=" + yMin + "&size=" + size.value;
 
 		    //alert(url);
@@ -145,7 +134,11 @@
 			    //alert(xmlhttp.status);
 			    if ( xmlhttp.status == 200) {
 				//box.value = xmlhttp.responseText;
-				rawGeoJSON(xmlhttp.responseText, parcel2Style);
+				var style = satelliteStyle;
+				if (map.getMapTypeId() == 'roadmap') {
+				    style = roadmapStyle;
+				}
+				rawGeoJSON(xmlhttp.responseText, style);
 			    }
 			}
 
@@ -212,14 +205,15 @@
 		    map = new google.maps.Map(document.getElementById('map'),{
 			zoom: 20,
 			//center: new google.maps.LatLng(35.042248, -80.662319),
-			center: new google.maps.LatLng(30.2458669372427, -97.8390259805675), //my house
+			center: new google.maps.LatLng(39.80177, -90.1245), // utm boundaries
+			//center: new google.maps.LatLng(30.2458669372427, -97.8390259805675), //my house
 			//center: new google.maps.LatLng(30.099912, -97.268906), // bastrop
 			mapTypeId: google.maps.MapTypeId.SATELLITE
 
 		    });
 
 		    map.setTilt(0);
-		    document.getElementById("zoom_level").value = map.getZoom();
+		    document.getElementById("zoom_level").value = map.getZoom();		    
 
 		    google.maps.event.addListener(map, 'click', function(event) {
 			//alert(event.latLng.lat());
@@ -237,7 +231,14 @@
 			//clearMap();
 			//clearOverlays();
 			getGrid();
-		    });		    
+		    });		
+		    
+		    google.maps.event.addListener(map, 'maptypeid_changed', function() {
+			//clearMap();
+			//clearOverlays();
+			getGrid();
+
+		    });	
 		    
 		}		
 		
